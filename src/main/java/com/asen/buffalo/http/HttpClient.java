@@ -47,7 +47,7 @@ import java.util.StringJoiner;
 
 /**
  * @description:
- * @author: huangys01@missfresh.cn
+ * @author: Asen
  * @create: 2019-07-22 11:00:36
  */
 @Slf4j
