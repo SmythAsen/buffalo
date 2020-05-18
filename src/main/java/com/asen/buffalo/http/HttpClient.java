@@ -22,19 +22,19 @@ import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 
+import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -53,6 +53,31 @@ import java.util.StringJoiner;
 @Slf4j
 public class HttpClient {
 
+    /**
+     * 链接建立的超时时间 ms
+     */
+    private static final int DEFAULT_CONNECTION_TIMEOUT = 3000;
+    /**
+     * 响应超时时间 ms
+     */
+    private static final int DEFAULT_SOCKET_TIMEOUT = 3000;
+    /**
+     * 每个路由的最大连接数
+     */
+    private static final int DEFAULT_DEFAULT_MAX_PER_ROUTE = 50;
+    /**
+     * 最大连接数
+     */
+    private static final int DEFAULT_DEFAULT_MAX_TOTAL = 200;
+    /**
+     * 重试次数，默认0
+     */
+    private static final int DEFAULT_RETRY_COUNT = 0;
+    /**
+     * 从connection pool中获得一个connection的超时时间 ms
+     */
+    private static final int DEFAULT_CONNECTION_WAIT_TIMEOUT = 300;
+
     public static final int HTTP_STATUS_OK_MIN = 200;
     public static final int HTTP_STATUS_OK_MAX = 300;
     public static final String UTF8_ENCODING = "UTF-8";
@@ -60,6 +85,32 @@ public class HttpClient {
     public static final String CONTENT_TYPE_APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
     private static final String AUTHORIZATION_NAME = "Authorization";
     private static final String BEARER_TOKEN_PREFIX = "Bearer ";
+
+    /**
+     * 连接超时时间/ms
+     */
+    private int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
+    /**
+     * 链接建立的超时时间/ms
+     */
+    private int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    /**
+     * 每个路由的最大连接数
+     */
+    private int maxPreRote = DEFAULT_DEFAULT_MAX_PER_ROUTE;
+    /**
+     * 最大连接数
+     */
+    private int maxTotal = DEFAULT_DEFAULT_MAX_TOTAL;
+    /**
+     * 重试次数，默认0
+     */
+    private int retryCount = DEFAULT_RETRY_COUNT;
+    /**
+     * 从connection pool中获得一个connection的超时时间 ms
+     */
+    private int connectionWaitTimeout = DEFAULT_CONNECTION_WAIT_TIMEOUT;
+
     /**
      * 请求的url
      */
@@ -118,13 +169,92 @@ public class HttpClient {
     private String exceptionResult;
 
     /**
-     * 连接超时时间
+     * 设置连接超时时间 ms
+     *
+     * @param socketTimeout
+     * @return
      */
-    private Integer timeout;
+    public HttpClient socketTimeout(int socketTimeout) {
+        this.socketTimeout = socketTimeout;
+        return this;
+    }
+
+    /**
+     * 链接建立的超时时间/ms
+     *
+     * @param connectionTimeout
+     * @return
+     */
+    public HttpClient connectionTimeout(int connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
+        return this;
+    }
+
+    /**
+     * 设置每个路由的最大连接数
+     *
+     * @param maxPreRote
+     * @return
+     */
+    public HttpClient maxPreRote(int maxPreRote) {
+        this.maxPreRote = maxPreRote;
+        return this;
+    }
+
+    /**
+     * 设置最大连接数
+     *
+     * @param maxTotal
+     * @return
+     */
+    public HttpClient maxTotal(int maxTotal) {
+        this.maxTotal = maxTotal;
+        return this;
+    }
+
+    /**
+     * 设置重试次数，默认0
+     *
+     * @param retryCount
+     * @return
+     */
+    public HttpClient retryCount(int retryCount) {
+        this.retryCount = retryCount;
+        return this;
+    }
+
+    /**
+     * 设置从connection pool中获得一个connection的超时时间 ms
+     *
+     * @param connectionWaitTimeout
+     * @return
+     */
+    public HttpClient connectionWaitTimeout(int connectionWaitTimeout) {
+        this.connectionWaitTimeout = connectionWaitTimeout;
+        return this;
+    }
+
+
+    private HttpClient() {
+    }
+
+    private HttpClient(int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
+        this.socketTimeout = socketTimeout;
+        this.connectionTimeout = connectionTimeout;
+        this.maxPreRote = maxPreRote;
+        this.maxTotal = maxTotal;
+        this.retryCount = retryCount;
+        this.connectionWaitTimeout = connectionWaitTimeout;
+    }
 
     public static HttpClient create() {
         return new HttpClient();
     }
+
+    public static HttpClient create(int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
+        return new HttpClient(socketTimeout, connectionTimeout, maxPreRote, maxTotal, retryCount, connectionWaitTimeout);
+    }
+
 
     public HttpClient post() {
         this.validate();
@@ -621,53 +751,38 @@ public class HttpClient {
         return this;
     }
 
-    /**
-     * 设置连接超时时间
-     *
-     * @param timeout
-     * @return
-     */
-    public HttpClient timeout(int timeout) {
-        this.timeout = timeout;
-        return this;
-    }
-
     private CloseableHttpClient getHttpClient() {
         try {
-            SSLContextBuilder builder = new SSLContextBuilder();
-            builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+            SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(((chain, authType) -> true)).build();
             //不进行主机名验证
-            SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(builder.build(), NoopHostnameVerifier.INSTANCE);
+            SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
             Registry<ConnectionSocketFactory> registry = RegistryBuilder.<ConnectionSocketFactory>create()
                     .register("http", PlainConnectionSocketFactory.getSocketFactory())
                     .register("https", sslConnectionSocketFactory)
                     .build();
-
             PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(registry);
-            cm.setMaxTotal(100);
-            HttpClientBuilder httpClientBuilder = HttpClients.custom()
-                    .setSSLSocketFactory(sslConnectionSocketFactory)
-                    .setDefaultCookieStore(new BasicCookieStore())
-                    .setConnectionManager(cm);
+            cm.setMaxTotal(this.maxTotal);
+            cm.setDefaultMaxPerRoute(this.maxPreRote);
 
-            ;
-            RequestConfig.Builder configBuilder = RequestConfig.custom();
+            RequestConfig.Builder configBuilder = RequestConfig.custom()
+                    .setSocketTimeout(this.socketTimeout)
+                    .setConnectTimeout(this.connectionTimeout)
+                    .setConnectionRequestTimeout(this.connectionWaitTimeout);
+
+            // 设置代理
             if (StringUtils.isNotBlank(this.proxyHost) && Objects.nonNull(this.proxyPort)) {
                 HttpHost proxy = new HttpHost(this.proxyHost, this.proxyPort, this.proxySchemeName);
                 configBuilder.setProxy(proxy);
             }
-
-            if (Objects.nonNull(this.timeout)) {
-                configBuilder.setSocketTimeout(this.timeout)
-                        .setConnectTimeout(this.timeout)
-                        .setConnectionRequestTimeout(this.timeout);
-            }
-
-            RequestConfig defaultRequestConfig = configBuilder.build();
-            httpClientBuilder.setDefaultRequestConfig(defaultRequestConfig);
-            return httpClientBuilder.build();
+            return HttpClients.custom()
+                    .setSSLSocketFactory(sslConnectionSocketFactory)
+                    .setDefaultCookieStore(new BasicCookieStore())
+                    .setConnectionManager(cm)
+                    .setDefaultRequestConfig(configBuilder.build())
+                    .setRetryHandler(new DefaultHttpRequestRetryHandler(this.retryCount, false))
+                    .build();
         } catch (Exception e) {
-            log.error("get httpclient error !{}", e);
+            log.error("get httpclient error !{}", e.getMessage(), e);
         }
         return HttpClients.createDefault();
     }
