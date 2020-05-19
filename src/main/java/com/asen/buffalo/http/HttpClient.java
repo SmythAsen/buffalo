@@ -89,6 +89,14 @@ public class HttpClient {
     private static final Map<String, HttpClient> CREATED_HTTP_CLIENTS = new HashMap<>();
     private static final Lock LOCK = new ReentrantLock();
 
+    /**
+     * 错误返回处理
+     */
+    private ErrorResponseHandler errorResponseHandler = (url, status, response) -> {
+        log.error("http request failed! url: {}, status: {}, response: {}", url, status, response);
+        throw new RuntimeException("http request failed");
+    };
+
 
     /**
      * 连接超时时间/ms
@@ -179,7 +187,7 @@ public class HttpClient {
     /**
      * 返回状态不为200的异常返回结果
      */
-    private String exceptionResult;
+    private String errorResult;
 
 
     private HttpClient() {
@@ -339,8 +347,8 @@ public class HttpClient {
      *
      * @return
      */
-    public String exceptionResult() {
-        return this.exceptionResult;
+    public String errorResult() {
+        return this.errorResult;
     }
 
     /**
@@ -586,6 +594,17 @@ public class HttpClient {
     }
 
     /**
+     * 当http请求错误返回时处理逻辑
+     *
+     * @param errorResponseHandler 逻辑处理器
+     * @return this
+     */
+    public HttpClient errorResponseHandler(ErrorResponseHandler errorResponseHandler) {
+        this.errorResponseHandler = errorResponseHandler;
+        return this;
+    }
+
+    /**
      * 发送POST请求
      *
      * @return
@@ -767,13 +786,12 @@ public class HttpClient {
                 this.result = EntityUtils.toString(httpEntity, StandardCharsets.UTF_8);
             }
             if (HttpStatus.SC_OK <= this.httpStatusCode && this.httpStatusCode < HttpStatus.SC_MULTIPLE_CHOICES) {
-                response.close();
                 log.debug("http request success, url: {},status: {}", path, this.httpStatusCode);
                 return;
             }
-            this.exceptionResult = this.result;
-            //TODO 异常处理
-            log.error("http request failed! url: {}, status: {}, exception: {}", path, this.httpStatusCode, this.exceptionResult);
+            this.errorResult = this.result;
+            errorResponseHandler.handle(path, this.httpStatusCode, this.errorResult);
+            log.error("http request failed! url: {}, status: {}, exception: {}", path, this.httpStatusCode, this.errorResult);
         } catch (SocketTimeoutException e) {
             log.error("http timeout request url : {} .", path);
             throw new RuntimeException(e);
