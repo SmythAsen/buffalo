@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -38,12 +39,13 @@ import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.StringJoiner;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @description:
@@ -78,13 +80,15 @@ public class HttpClient {
      */
     private static final int DEFAULT_CONNECTION_WAIT_TIMEOUT = 300;
 
-    public static final int HTTP_STATUS_OK_MIN = 200;
-    public static final int HTTP_STATUS_OK_MAX = 300;
-    public static final String UTF8_ENCODING = "UTF-8";
     public static final String CONTENT_TYPE_APPLICATION_JSON = "application/json";
-    public static final String CONTENT_TYPE_APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
+    public static final String CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
     private static final String AUTHORIZATION_NAME = "Authorization";
     private static final String BEARER_TOKEN_PREFIX = "Bearer ";
+
+    private static final String DEFAULT_SHARED_KEY = "DEFAULT_SHARED_KEY";
+    private static final Map<String, HttpClient> CREATED_HTTP_CLIENTS = new HashMap<>();
+    private static final Lock LOCK = new ReentrantLock();
+
 
     /**
      * 连接超时时间/ms
@@ -149,12 +153,21 @@ public class HttpClient {
      * MultipartEntityBuilder 中的textBody
      */
     private Map<String, String> textBody = Maps.newHashMap();
-
     private Map<String, String> queryParams = Maps.newHashMap();
 
+    /**
+     * 代理ip
+     */
     private String proxyHost;
+    /**
+     * 代理端口
+     */
     private Integer proxyPort;
+    /**
+     * 代理模式：http或者https
+     */
     private String proxySchemeName;
+
     /**
      * 请求返回的结果
      */
@@ -167,6 +180,64 @@ public class HttpClient {
      * 返回状态不为200的异常返回结果
      */
     private String exceptionResult;
+
+
+    private HttpClient() {
+    }
+
+    private HttpClient(int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
+        this.socketTimeout = socketTimeout;
+        this.connectionTimeout = connectionTimeout;
+        this.maxPreRote = maxPreRote;
+        this.maxTotal = maxTotal;
+        this.retryCount = retryCount;
+        this.connectionWaitTimeout = connectionWaitTimeout;
+    }
+
+    public static HttpClient create(String cachedKey) {
+        HttpClient httpClient = CREATED_HTTP_CLIENTS.get(cachedKey);
+        if (Objects.nonNull(httpClient)) {
+            return httpClient;
+        }
+        try {
+            LOCK.lock();
+            httpClient = CREATED_HTTP_CLIENTS.get(cachedKey);
+            if (Objects.isNull(httpClient)) {
+                httpClient = new HttpClient();
+                CREATED_HTTP_CLIENTS.put(cachedKey, httpClient);
+            }
+        } finally {
+            LOCK.unlock();
+        }
+        return httpClient;
+    }
+
+
+    public static HttpClient create(String cachedKey, int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
+        HttpClient httpClient = CREATED_HTTP_CLIENTS.get(cachedKey);
+        if (Objects.nonNull(httpClient)) {
+            return httpClient;
+        }
+        try {
+            LOCK.lock();
+            httpClient = CREATED_HTTP_CLIENTS.get(cachedKey);
+            if (Objects.isNull(httpClient)) {
+                httpClient = new HttpClient(socketTimeout, connectionTimeout, maxPreRote, maxTotal, retryCount, connectionWaitTimeout);
+                CREATED_HTTP_CLIENTS.put(cachedKey, httpClient);
+            }
+        } finally {
+            LOCK.unlock();
+        }
+        return httpClient;
+    }
+
+    public static HttpClient create() {
+        return create(DEFAULT_SHARED_KEY);
+    }
+
+    public static HttpClient create(int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
+        return create(DEFAULT_SHARED_KEY, socketTimeout, connectionTimeout, maxPreRote, maxTotal, retryCount, connectionWaitTimeout);
+    }
 
     /**
      * 设置连接超时时间 ms
@@ -234,52 +305,15 @@ public class HttpClient {
         return this;
     }
 
-
-    private HttpClient() {
-    }
-
-    private HttpClient(int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
-        this.socketTimeout = socketTimeout;
-        this.connectionTimeout = connectionTimeout;
-        this.maxPreRote = maxPreRote;
-        this.maxTotal = maxTotal;
-        this.retryCount = retryCount;
-        this.connectionWaitTimeout = connectionWaitTimeout;
-    }
-
-    public static HttpClient create() {
-        return new HttpClient();
-    }
-
-    public static HttpClient create(int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
-        return new HttpClient(socketTimeout, connectionTimeout, maxPreRote, maxTotal, retryCount, connectionWaitTimeout);
-    }
-
-
-    public HttpClient post() {
-        this.validate();
-        try {
-            CloseableHttpClient httpClient = this.getHttpClient();
-            HttpPost post = buildHttpPost();
-            httpExecute(httpClient, post);
-            httpClient.close();
-            return this;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public HttpClient get() {
-        this.validate();
-        try {
-            CloseableHttpClient httpClient = this.getHttpClient();
-            HttpGet get = buildHttpGet();
-            httpExecute(httpClient, get);
-            httpClient.close();
-            return this;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    /**
+     * 请求地址
+     *
+     * @param url
+     * @return
+     */
+    public HttpClient url(String url) {
+        this.url = url;
+        return this;
     }
 
     /**
@@ -291,6 +325,11 @@ public class HttpClient {
         return this.result;
     }
 
+    /**
+     * 获取请求返回状态码
+     *
+     * @return
+     */
     public Integer httpStatusCode() {
         return this.httpStatusCode;
     }
@@ -302,163 +341,6 @@ public class HttpClient {
      */
     public String exceptionResult() {
         return this.exceptionResult;
-    }
-
-    /**
-     * 解析返回结果为指定类
-     *
-     * @param clz
-     * @param <T>
-     * @return
-     */
-    public <T> T toObject(Class<T> clz) {
-        if (StringUtils.isNotBlank(this.result)) {
-            return JSON.parseObject(this.result, clz);
-        }
-        log.error("the http result is null, or you not sent the http request!");
-        return null;
-    }
-
-    /**
-     * 解析返回结果为JSONObject
-     *
-     * @return
-     */
-    public JSONObject toJsonObject() {
-        if (StringUtils.isNotBlank(this.result)) {
-            return JSON.parseObject(this.result);
-        }
-        log.error("the http result is null, or you not sent the http request!");
-        return null;
-    }
-
-
-    /**
-     * 构建httpPost
-     *
-     * @return
-     */
-    private HttpPost buildHttpPost() throws URISyntaxException, UnsupportedEncodingException {
-        HttpPost post = new HttpPost(buildUrl());
-        if (headers.size() > 0) {
-            headers.forEach(post::addHeader);
-        }
-        if (StringUtils.isNotBlank(this.authorization)) {
-            post.addHeader(AUTHORIZATION_NAME, this.authorization);
-        }
-        if (StringUtils.isNotBlank(this.bearerToken)) {
-            post.setHeader(AUTHORIZATION_NAME, BEARER_TOKEN_PREFIX + this.bearerToken);
-        }
-        HttpEntity httpEntity;
-        if (files.size() > 0) {
-            httpEntity = buildMultipartEntity();
-            post.setEntity(httpEntity);
-        }
-        if (StringUtils.isNotBlank(body)) {
-            httpEntity = buildNormalEntity();
-            post.setEntity(httpEntity);
-        }
-        return post;
-    }
-
-    private HttpGet buildHttpGet() throws URISyntaxException {
-        HttpGet get = new HttpGet(buildUrl());
-        if (headers.size() > 0) {
-            headers.forEach(get::addHeader);
-        }
-        if (StringUtils.isNotBlank(this.authorization)) {
-            get.addHeader(AUTHORIZATION_NAME, this.authorization);
-        }
-        if (StringUtils.isNotBlank(this.bearerToken)) {
-            get.setHeader(AUTHORIZATION_NAME, BEARER_TOKEN_PREFIX + this.bearerToken);
-        }
-        return get;
-    }
-
-    /**
-     * 构建url
-     *
-     * @return
-     * @throws URISyntaxException
-     */
-    private URI buildUrl() throws URISyntaxException {
-        this.validate();
-        // 添加参数
-        URIBuilder builder = new URIBuilder(this.url);
-        if (this.queryParams.size() > 0) {
-            builder.setCustomQuery(this.buildQueryParams());
-        }
-        if (this.params.size() > 0) {
-            builder.addParameters(buildParams());
-        }
-        if (this.arrayParams.size() > 0) {
-            builder.addParameters(buildArrayParams());
-        }
-        return builder.build();
-    }
-
-    /**
-     * 构建常用entitiy
-     *
-     * @return
-     * @throws UnsupportedEncodingException
-     */
-    private HttpEntity buildNormalEntity() throws UnsupportedEncodingException {
-        StringEntity result = new StringEntity(body);
-        result.setContentEncoding(UTF8_ENCODING);
-        result.setContentType(contentType);
-        return result;
-    }
-
-    /**
-     * 构建multipartEntity
-     *
-     * @return
-     */
-    private HttpEntity buildMultipartEntity() {
-        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-        // 添加文件
-        if (this.files.size() > 0) {
-            FileBody fileBody;
-            for (Map.Entry<String, File> entry : this.files.entrySet()) {
-                fileBody = new FileBody(entry.getValue());
-                builder.addPart(entry.getKey(), fileBody);
-            }
-        }
-        if (this.textBody.size() > 0) {
-            for (Map.Entry<String, String> entry : this.textBody.entrySet()) {
-                builder.addTextBody(entry.getKey(), entry.getValue());
-            }
-        }
-        return builder.build();
-    }
-
-
-    private String httpExecute(CloseableHttpClient httpclient, HttpUriRequest httpUriRequest) throws IOException {
-        String ret = null;
-        CloseableHttpResponse response = httpclient.execute(httpUriRequest);
-        this.httpStatusCode = response.getStatusLine().getStatusCode();
-        if (HTTP_STATUS_OK_MIN <= this.httpStatusCode && this.httpStatusCode < HTTP_STATUS_OK_MAX) {
-            if (Objects.nonNull(response.getEntity())) {
-                ret = EntityUtils.toString(response.getEntity(), UTF8_ENCODING);
-            }
-            response.close();
-        } else {
-            String exceptionResult;
-            if (Objects.nonNull(response.getEntity())) {
-                exceptionResult = EntityUtils.toString(response.getEntity(), UTF8_ENCODING);
-                log.error(exceptionResult);
-                this.exceptionResult = exceptionResult;
-            }
-            log.error("http response error!,code :{}", this.httpStatusCode);
-        }
-        this.result = ret;
-        return ret;
-    }
-
-    public HttpClient url(String url) {
-        this.url = url;
-        return this;
     }
 
     /**
@@ -689,6 +571,230 @@ public class HttpClient {
     }
 
     /**
+     * 设置代理
+     *
+     * @param proxyHost
+     * @param proxyPort
+     * @param proxySchemeName
+     * @return
+     */
+    public HttpClient proxy(String proxyHost, Integer proxyPort, String proxySchemeName) {
+        this.proxyHost = proxyHost;
+        this.proxyPort = proxyPort;
+        this.proxySchemeName = proxySchemeName;
+        return this;
+    }
+
+    /**
+     * 发送POST请求
+     *
+     * @return
+     */
+    public HttpClient post() {
+        this.validate();
+        try {
+            CloseableHttpClient httpClient = this.getHttpClient();
+            HttpPost post = buildHttpPost();
+            httpExecute(httpClient, post);
+            httpClient.close();
+            return this;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 发送GET请求
+     *
+     * @return
+     */
+    public HttpClient get() {
+        this.validate();
+        try {
+            CloseableHttpClient httpClient = this.getHttpClient();
+            HttpGet get = buildHttpGet();
+            httpExecute(httpClient, get);
+            httpClient.close();
+            return this;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 解析返回结果为指定类
+     *
+     * @param clz
+     * @param <T>
+     * @return
+     */
+    public <T> T toObject(Class<T> clz) {
+        if (StringUtils.isNotBlank(this.result)) {
+            return JSON.parseObject(this.result, clz);
+        }
+        log.error("the http result is null, or you not sent the http request!");
+        return null;
+    }
+
+    /**
+     * 解析返回结果为JSONObject
+     *
+     * @return
+     */
+    public JSONObject toJsonObject() {
+        if (StringUtils.isNotBlank(this.result)) {
+            return JSON.parseObject(this.result);
+        }
+        log.error("the http result is null, or you not sent the http request!");
+        return null;
+    }
+
+
+    /**
+     * 构建httpPost
+     *
+     * @return
+     */
+    private HttpPost buildHttpPost() throws URISyntaxException, UnsupportedEncodingException {
+        HttpPost post = new HttpPost(buildUrl());
+        if (headers.size() > 0) {
+            headers.forEach(post::addHeader);
+        }
+        if (StringUtils.isNotBlank(this.authorization)) {
+            post.addHeader(AUTHORIZATION_NAME, this.authorization);
+        }
+        if (StringUtils.isNotBlank(this.bearerToken)) {
+            post.setHeader(AUTHORIZATION_NAME, BEARER_TOKEN_PREFIX + this.bearerToken);
+        }
+        HttpEntity httpEntity;
+        if (files.size() > 0) {
+            httpEntity = buildMultipartEntity();
+            post.setEntity(httpEntity);
+        }
+        if (StringUtils.isNotBlank(body)) {
+            httpEntity = buildNormalEntity();
+            post.setEntity(httpEntity);
+        }
+        return post;
+    }
+
+    private HttpGet buildHttpGet() throws URISyntaxException {
+        HttpGet get = new HttpGet(buildUrl());
+        if (headers.size() > 0) {
+            headers.forEach(get::addHeader);
+        }
+        if (StringUtils.isNotBlank(this.authorization)) {
+            get.addHeader(AUTHORIZATION_NAME, this.authorization);
+        }
+        if (StringUtils.isNotBlank(this.bearerToken)) {
+            get.setHeader(AUTHORIZATION_NAME, BEARER_TOKEN_PREFIX + this.bearerToken);
+        }
+        return get;
+    }
+
+    /**
+     * 构建url
+     *
+     * @return
+     * @throws URISyntaxException
+     */
+    private URI buildUrl() throws URISyntaxException {
+        this.validate();
+        // 添加参数
+        URIBuilder builder = new URIBuilder(this.url);
+        if (this.queryParams.size() > 0) {
+            builder.setCustomQuery(this.buildQueryParams());
+        }
+        if (this.params.size() > 0) {
+            builder.addParameters(buildParams());
+        }
+        if (this.arrayParams.size() > 0) {
+            builder.addParameters(buildArrayParams());
+        }
+        return builder.build();
+    }
+
+    /**
+     * 构建常用entitiy
+     *
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    private HttpEntity buildNormalEntity() throws UnsupportedEncodingException {
+        StringEntity result = new StringEntity(body);
+        result.setContentEncoding(StandardCharsets.UTF_8.name());
+        result.setContentType(contentType);
+        return result;
+    }
+
+    /**
+     * 构建multipartEntity
+     *
+     * @return
+     */
+    private HttpEntity buildMultipartEntity() {
+        MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        // 添加文件
+        if (this.files.size() > 0) {
+            FileBody fileBody;
+            for (Map.Entry<String, File> entry : this.files.entrySet()) {
+                fileBody = new FileBody(entry.getValue());
+                builder.addPart(entry.getKey(), fileBody);
+            }
+        }
+        if (this.textBody.size() > 0) {
+            for (Map.Entry<String, String> entry : this.textBody.entrySet()) {
+                builder.addTextBody(entry.getKey(), entry.getValue());
+            }
+        }
+        return builder.build();
+    }
+
+
+    private void httpExecute(CloseableHttpClient httpclient, HttpUriRequest request) {
+        String path = request.getURI().toString();
+        log.debug("http request url: {}", path);
+        HttpEntity httpEntity = null;
+        CloseableHttpResponse response = null;
+        try {
+            response = httpclient.execute(request);
+            if (Objects.isNull(response)) {
+                throw new RuntimeException("call api exception no response");
+            }
+            this.httpStatusCode = response.getStatusLine().getStatusCode();
+            httpEntity = response.getEntity();
+            if (Objects.nonNull(httpEntity)) {
+                this.result = EntityUtils.toString(httpEntity, StandardCharsets.UTF_8);
+            }
+            if (HttpStatus.SC_OK <= this.httpStatusCode && this.httpStatusCode < HttpStatus.SC_MULTIPLE_CHOICES) {
+                response.close();
+                log.debug("http request success, url: {},status: {}", path, this.httpStatusCode);
+                return;
+            }
+            this.exceptionResult = this.result;
+            //TODO 异常处理
+            log.error("http request failed! url: {}, status: {}, exception: {}", path, this.httpStatusCode, this.exceptionResult);
+        } catch (SocketTimeoutException e) {
+            log.error("http timeout request url : {} .", path);
+            throw new RuntimeException(e);
+        } catch (Exception e) {
+            log.error("http exception request url: {} ", path, e);
+            throw new RuntimeException(e);
+        } finally {
+            if (Objects.nonNull(response)) {
+                try {
+                    response.close();
+                } catch (IOException e) {
+                    log.error(e.getMessage(), e);
+                }
+            }
+            request.abort();
+            EntityUtils.consumeQuietly(httpEntity);
+        }
+    }
+
+
+    /**
      * 参数校验
      */
     private void validate() {
@@ -736,20 +842,6 @@ public class HttpClient {
         return joiner.toString();
     }
 
-    /**
-     * 设置代理
-     *
-     * @param proxyHost
-     * @param proxyPort
-     * @param proxySchemeName
-     * @return
-     */
-    public HttpClient proxy(String proxyHost, Integer proxyPort, String proxySchemeName) {
-        this.proxyHost = proxyHost;
-        this.proxyPort = proxyPort;
-        this.proxySchemeName = proxySchemeName;
-        return this;
-    }
 
     private CloseableHttpClient getHttpClient() {
         try {

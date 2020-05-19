@@ -13,6 +13,7 @@ import java.util.Date;
 public class DateUtilsTest {
 
     @Test
+
     public void betweenDays() {
         Date startDate = DateUtils.parse("2020-05-14 15:00:00");
         Date endDate = new Date();
