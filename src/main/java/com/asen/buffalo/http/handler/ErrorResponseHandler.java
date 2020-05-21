@@ -1,7 +1,7 @@
-package com.asen.buffalo.http;
+package com.asen.buffalo.http.handler;
 
 /**
- * @description:
+ * @description: http请求错误返回处理器
  * @author: Asen
  * @since: 2020-05-19 16:05:57
  */

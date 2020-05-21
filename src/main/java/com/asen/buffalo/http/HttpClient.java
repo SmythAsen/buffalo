@@ -3,10 +3,14 @@ package com.asen.buffalo.http;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.asen.buffalo.http.exception.ErrorResponseException;
+import com.asen.buffalo.http.handler.ErrorResponseHandler;
+import com.asen.buffalo.http.handler.SuccessResponseHandler;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
@@ -19,6 +23,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -44,6 +49,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -89,14 +97,18 @@ public class HttpClient {
     private static final Map<String, HttpClient> CREATED_HTTP_CLIENTS = new HashMap<>();
     private static final Lock LOCK = new ReentrantLock();
 
-    /**
-     * 错误返回处理
-     */
-    private ErrorResponseHandler errorResponseHandler = (url, status, response) -> {
-        log.error("http request failed! url: {}, status: {}, response: {}", url, status, response);
-        throw new RuntimeException("http request failed");
-    };
+    private static final ScheduledExecutorService SCHEDULED_CLOSED_EXECUTOR = new ScheduledThreadPoolExecutor(1,
+            new BasicThreadFactory.Builder()
+                    .namingPattern("http conn-closed-thread-%s")
+                    .priority(Thread.NORM_PRIORITY)
+                    .daemon(false).build(),
+            (r, e) -> log.error("monitor push reject task error={}", e.toString()));
 
+    private static final List<HttpClientConnectionManager> HTTP_CLIENT_CONNECTION_MANAGERS = Lists.newArrayList();
+
+    static {
+        SCHEDULED_CLOSED_EXECUTOR.schedule(() -> HTTP_CLIENT_CONNECTION_MANAGERS.forEach(HttpClientConnectionManager::closeExpiredConnections), 5, TimeUnit.SECONDS);
+    }
 
     /**
      * 连接超时时间/ms
@@ -152,6 +164,9 @@ public class HttpClient {
      * 用户设置参数
      */
     private Map<String, String> params = Maps.newHashMap();
+    /**
+     * 查询数组
+     */
     private Map<String, List<String>> arrayParams = Maps.newHashMap();
     /**
      * 传输文件
@@ -161,6 +176,9 @@ public class HttpClient {
      * MultipartEntityBuilder 中的textBody
      */
     private Map<String, String> textBody = Maps.newHashMap();
+    /**
+     * 查询参数
+     */
     private Map<String, String> queryParams = Maps.newHashMap();
 
     /**
@@ -188,6 +206,16 @@ public class HttpClient {
      * 返回状态不为200的异常返回结果
      */
     private String errorResult;
+
+    /**
+     * 错误返回处理
+     */
+    private ErrorResponseHandler errorResponseHandler = (url, status, response) -> {
+        log.error("http request failed! url: {}, status: {}, response: {}", url, status, response);
+        throw new ErrorResponseException("http request failed");
+    };
+    private SuccessResponseHandler successResponseHandler = (url, status, response) -> {
+    };
 
 
     private HttpClient() {
@@ -787,6 +815,7 @@ public class HttpClient {
             }
             if (HttpStatus.SC_OK <= this.httpStatusCode && this.httpStatusCode < HttpStatus.SC_MULTIPLE_CHOICES) {
                 log.debug("http request success, url: {},status: {}", path, this.httpStatusCode);
+                successResponseHandler.handle(url, this.httpStatusCode, this.result);
                 return;
             }
             this.errorResult = this.result;
@@ -873,6 +902,7 @@ public class HttpClient {
             PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(registry);
             cm.setMaxTotal(this.maxTotal);
             cm.setDefaultMaxPerRoute(this.maxPreRote);
+            HTTP_CLIENT_CONNECTION_MANAGERS.add(cm);
 
             RequestConfig.Builder configBuilder = RequestConfig.custom()
                     .setSocketTimeout(this.socketTimeout)
