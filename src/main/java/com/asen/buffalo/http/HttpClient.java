@@ -622,13 +622,24 @@ public class HttpClient {
     }
 
     /**
-     * 当http请求错误返回时处理逻辑
+     * 当http请求错误(status<200 || status>=300)返回时处理逻辑
      *
      * @param errorResponseHandler 逻辑处理器
      * @return this
      */
     public HttpClient errorResponseHandler(ErrorResponseHandler errorResponseHandler) {
         this.errorResponseHandler = errorResponseHandler;
+        return this;
+    }
+
+    /**
+     * 当http请求正确(200<=status<300)时返回时处理逻辑
+     *
+     * @param successResponseHandler
+     * @return
+     */
+    public HttpClient successResponseHandler(SuccessResponseHandler successResponseHandler) {
+        this.successResponseHandler = successResponseHandler;
         return this;
     }
 
