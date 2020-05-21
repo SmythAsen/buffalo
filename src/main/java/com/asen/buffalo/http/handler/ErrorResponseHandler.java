@@ -1,9 +1,9 @@
 package com.asen.buffalo.http.handler;
 
 /**
- * @description: http请求错误返回处理器
+ * @description: http请求错误返回(status < 200 | | status > = 300)处理器
  * @author: Asen
- * @since: 2020-05-19 16:05:57
+ * @since: 2020/05/19
  */
 public interface ErrorResponseHandler {
     /**

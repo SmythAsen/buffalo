@@ -1,9 +1,9 @@
 package com.asen.buffalo.http.exception;
 
 /**
- * @description:
+ * @description: Http异常返回
  * @author: Asen
- * @since: 2020-05-21 15:01:17
+ * @since: 2020/05/21
  */
 public class ErrorResponseException extends RuntimeException {
 

@@ -56,9 +56,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * @description:
+ * @description: Http请求工具类
  * @author: Asen
- * @create: 2019-07-22 11:00:36
+ * @create: 2019/07/22
  */
 @Slf4j
 public class HttpClient {
