@@ -21,6 +21,7 @@
         <fastjson.version>1.2.58</fastjson.version>
         <slf4j.versionn>1.7.25</slf4j.versionn>
         <xstream.version>1.4.10</xstream.version>
+        <validation.version>2.0.1.Final</validation.version>
     </properties>
 
     <dependencies>
@@ -54,11 +55,18 @@
             <version>${commons-io.version}</version>
         </dependency>
 
-        <!--        xml相关-->
+        <!--xml相关-->
         <dependency>
             <groupId>com.thoughtworks.xstream</groupId>
             <artifactId>xstream</artifactId>
             <version>${xstream.version}</version>
+        </dependency>
+
+        <!--validator-->
+        <dependency>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+            <version>${validation.version}</version>
         </dependency>
 
         <!-- 序列化 -->
