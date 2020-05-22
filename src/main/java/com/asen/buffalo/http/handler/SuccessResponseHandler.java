@@ -1,9 +1,11 @@
 package com.asen.buffalo.http.handler;
 
 /**
- * @description: http成功返回(200 < = status < 300)处理器
- * @author: Asen
- * @since: 2020/05/21
+ * http成功返回(status大于等于200且status小于300)处理器
+ *
+ * @author Asen
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 public interface SuccessResponseHandler {
     /**

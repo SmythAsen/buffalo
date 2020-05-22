@@ -3,9 +3,11 @@ package com.asen.buffalo.reflect;
 import java.lang.reflect.Field;
 
 /**
- * @Decription: 获取反射字段的GET、SET方法名
- * @Author: Asen
- * @Date: 2018/6/7
+ * 获取反射字段的GET、SET方法名
+ *
+ * @author Asen
+ * @version 1.0.0
+ * @since 2020/05/19
  **/
 public class FieldUtils {
     private static final String GET_PREFIX = "get";

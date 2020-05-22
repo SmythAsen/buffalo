@@ -8,9 +8,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * 枚举类校验器
+ *
  * @author Asen
- * @description 枚举类校验器
- * @create 2019/09/19
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 public class DefaultEnumValidator implements ConstraintValidator<EnumValidator, Object> {
 

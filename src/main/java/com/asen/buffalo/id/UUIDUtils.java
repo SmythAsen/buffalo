@@ -3,9 +3,11 @@ package com.asen.buffalo.id;
 import java.util.UUID;
 
 /**
- * @description: UUID工具类
- * @author: Asen
- * @create: 2019/03/18
+ * UUID工具类
+ *
+ * @author Asen
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 public class UUIDUtils {
 

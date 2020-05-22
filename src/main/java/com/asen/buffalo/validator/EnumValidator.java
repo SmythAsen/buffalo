@@ -5,9 +5,11 @@ import javax.validation.Payload;
 import java.lang.annotation.*;
 
 /**
+ * 枚举类校验器
+ *
  * @author Asen
- * @description 枚举类校验器
- * @date 2019/09/19
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.ANNOTATION_TYPE, ElementType.CONSTRUCTOR, ElementType.PARAMETER, ElementType.TYPE_USE})
 @Retention(RetentionPolicy.RUNTIME)

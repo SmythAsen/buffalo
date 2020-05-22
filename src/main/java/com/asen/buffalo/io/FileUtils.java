@@ -10,9 +10,11 @@ import java.nio.charset.Charset;
 import java.util.List;
 
 /**
- * @description: 文件工具类
- * @author: Asen
- * @create: 2019/10/29
+ * 文件工具类
+ *
+ * @author Asen
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 @Slf4j
 public class FileUtils {

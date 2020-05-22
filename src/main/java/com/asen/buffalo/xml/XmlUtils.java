@@ -7,10 +7,12 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 
 /**
- * @description: xml工具类
+ * xml工具类
  * 依赖于{@link XStream}，所以需要了解相关文档
- * @author: Asen
- * @since: 2020/05/21
+ *
+ * @author Asen
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 public class XmlUtils {
     public static <T> T toObject(InputStream xmlInputStream, Class<T> clazz) {

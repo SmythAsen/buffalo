@@ -56,9 +56,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * @description: Http请求工具类
- * @author: Asen
- * @create: 2019/07/22
+ * Http请求工具类
+ *
+ * @author Asen
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 @Slf4j
 public class HttpClient {
@@ -217,7 +219,6 @@ public class HttpClient {
     private SuccessResponseHandler successResponseHandler = (url, status, response) -> {
     };
 
-
     private HttpClient() {
     }
 
@@ -230,6 +231,12 @@ public class HttpClient {
         this.connectionWaitTimeout = connectionWaitTimeout;
     }
 
+    /**
+     * 创建HttpClient
+     *
+     * @param cachedKey 用于缓存的key，如果已经存在会直接复用
+     * @return HttpClient
+     */
     public static HttpClient create(String cachedKey) {
         HttpClient httpClient = CREATED_HTTP_CLIENTS.get(cachedKey);
         if (Objects.nonNull(httpClient)) {
@@ -248,7 +255,18 @@ public class HttpClient {
         return httpClient;
     }
 
-
+    /**
+     * 创建HttpClient并配置相关参数
+     *
+     * @param cachedKey             用于缓存的key，如果已经存在会直接复用
+     * @param socketTimeout         连接超时时间/ms
+     * @param connectionTimeout     链接建立的超时时间/ms
+     * @param maxPreRote            每个路由的最大连接数
+     * @param maxTotal              最大连接数
+     * @param retryCount            重试次数，默认0
+     * @param connectionWaitTimeout 从connection pool中获得一个connection的超时时间/ms
+     * @return HttpClient
+     */
     public static HttpClient create(String cachedKey, int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
         HttpClient httpClient = CREATED_HTTP_CLIENTS.get(cachedKey);
         if (Objects.nonNull(httpClient)) {
@@ -267,19 +285,35 @@ public class HttpClient {
         return httpClient;
     }
 
+    /**
+     * 使用默认配置创建 HttpClient
+     *
+     * @return HttpClient
+     */
     public static HttpClient create() {
         return create(DEFAULT_SHARED_KEY);
     }
 
+    /**
+     * 使用默认缓存Key创建 HttpClient
+     *
+     * @param socketTimeout         连接超时时间/ms
+     * @param connectionTimeout     链接建立的超时时间/ms
+     * @param maxPreRote            每个路由的最大连接数
+     * @param maxTotal              最大连接数
+     * @param retryCount            重试次数，默认0
+     * @param connectionWaitTimeout 从connection pool中获得一个connection的超时时间/ms
+     * @return HttpClient
+     */
     public static HttpClient create(int socketTimeout, int connectionTimeout, int maxPreRote, int maxTotal, int retryCount, int connectionWaitTimeout) {
         return create(DEFAULT_SHARED_KEY, socketTimeout, connectionTimeout, maxPreRote, maxTotal, retryCount, connectionWaitTimeout);
     }
 
     /**
-     * 设置连接超时时间 ms
+     * 设置连接超时时间
      *
-     * @param socketTimeout
-     * @return
+     * @param socketTimeout 连接超时时间ms
+     * @return HttpClient
      */
     public HttpClient socketTimeout(int socketTimeout) {
         this.socketTimeout = socketTimeout;
@@ -289,8 +323,8 @@ public class HttpClient {
     /**
      * 链接建立的超时时间/ms
      *
-     * @param connectionTimeout
-     * @return
+     * @param connectionTimeout 链接建立的超时时间
+     * @return HttpClient
      */
     public HttpClient connectionTimeout(int connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
@@ -300,8 +334,8 @@ public class HttpClient {
     /**
      * 设置每个路由的最大连接数
      *
-     * @param maxPreRote
-     * @return
+     * @param maxPreRote 每个路由的最大连接数
+     * @return HttpClient
      */
     public HttpClient maxPreRote(int maxPreRote) {
         this.maxPreRote = maxPreRote;
@@ -311,8 +345,8 @@ public class HttpClient {
     /**
      * 设置最大连接数
      *
-     * @param maxTotal
-     * @return
+     * @param maxTotal 最大连接数
+     * @return HttpClient
      */
     public HttpClient maxTotal(int maxTotal) {
         this.maxTotal = maxTotal;
@@ -322,8 +356,8 @@ public class HttpClient {
     /**
      * 设置重试次数，默认0
      *
-     * @param retryCount
-     * @return
+     * @param retryCount 重试次数
+     * @return HttpClient
      */
     public HttpClient retryCount(int retryCount) {
         this.retryCount = retryCount;
@@ -333,8 +367,8 @@ public class HttpClient {
     /**
      * 设置从connection pool中获得一个connection的超时时间 ms
      *
-     * @param connectionWaitTimeout
-     * @return
+     * @param connectionWaitTimeout 从connection pool中获得一个connection的超时时间
+     * @return HttpClient
      */
     public HttpClient connectionWaitTimeout(int connectionWaitTimeout) {
         this.connectionWaitTimeout = connectionWaitTimeout;
@@ -344,8 +378,8 @@ public class HttpClient {
     /**
      * 请求地址
      *
-     * @param url
-     * @return
+     * @param url 地址
+     * @return HttpClient
      */
     public HttpClient url(String url) {
         this.url = url;
@@ -353,9 +387,10 @@ public class HttpClient {
     }
 
     /**
-     * 返回请求结果
+     * 获取请求结果
+     * 需要注意必须在get()或者post()方法调用后才能生效
      *
-     * @return
+     * @return HttpClient请求结果
      */
     public String result() {
         return this.result;
@@ -363,8 +398,9 @@ public class HttpClient {
 
     /**
      * 获取请求返回状态码
+     * 需要注意必须在get()或者post()方法调用后才能生效
      *
-     * @return
+     * @return 请求返回状态码
      */
     public Integer httpStatusCode() {
         return this.httpStatusCode;
@@ -372,8 +408,9 @@ public class HttpClient {
 
     /**
      * 获取异常返回结果
+     * 需要注意必须在get()或者post()方法调用后才能生效
      *
-     * @return
+     * @return 异常返回结果
      */
     public String errorResult() {
         return this.errorResult;
@@ -382,8 +419,8 @@ public class HttpClient {
     /**
      * 添加多个请求参数
      *
-     * @param params
-     * @return
+     * @param params 参数
+     * @return HttpClient
      */
     public HttpClient params(Map<String, String> params) {
         if (Objects.nonNull(params) && params.size() > 0) {
@@ -393,11 +430,11 @@ public class HttpClient {
     }
 
     /**
-     * 添加请求参数
+     * 添加单个请求参数
      *
-     * @param key
-     * @param value
-     * @return
+     * @param key   参数key
+     * @param value 参数value
+     * @return HttpClient
      */
     public HttpClient param(String key, String value) {
         if (StringUtils.isNotBlank(key) && StringUtils.isNotBlank(value)) {
@@ -409,8 +446,8 @@ public class HttpClient {
     /**
      * 添加多个数组参数
      *
-     * @param arrayParams
-     * @return
+     * @param arrayParams 数组参数
+     * @return HttpClient
      */
     public HttpClient arrayParams(Map<String, List<String>> arrayParams) {
         if (Objects.nonNull(arrayParams) && arrayParams.size() > 0) {
@@ -420,11 +457,11 @@ public class HttpClient {
     }
 
     /**
-     * 添加数组参数
+     * 添加单个数组参数
      *
-     * @param key
-     * @param values
-     * @return
+     * @param key    数组key
+     * @param values 数组value
+     * @return HttpClient
      */
     public HttpClient arrayParam(String key, List<String> values) {
         if (StringUtils.isNotBlank(key) && Objects.nonNull(values)) {
@@ -436,8 +473,8 @@ public class HttpClient {
     /**
      * 添加多个查询参数
      *
-     * @param queryParams
-     * @return
+     * @param queryParams 查询参数
+     * @return HttpClient
      */
     public HttpClient queryParams(Map<String, String> queryParams) {
         if (Objects.nonNull(queryParams) && queryParams.size() > 0) {
@@ -447,11 +484,11 @@ public class HttpClient {
     }
 
     /**
-     * 添加查询参数
+     * 添加多个查询参数
      *
-     * @param key
-     * @param value
-     * @return
+     * @param key   查询参数key
+     * @param value 查询参数value
+     * @return HttpClient
      */
     public HttpClient queryParam(String key, String value) {
         if (StringUtils.isNotBlank(key) && StringUtils.isNotBlank(value)) {
@@ -463,8 +500,8 @@ public class HttpClient {
     /**
      * 添加认证
      *
-     * @param authorization
-     * @return
+     * @param authorization 认证值
+     * @return HttpClient
      */
     public HttpClient authorization(String authorization) {
         this.authorization = authorization;
@@ -474,8 +511,8 @@ public class HttpClient {
     /**
      * 添加多个请求头
      *
-     * @param headers
-     * @return
+     * @param headers 请求头
+     * @return HttpClient
      */
     public HttpClient headers(Map<String, String> headers) {
         for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -485,11 +522,11 @@ public class HttpClient {
     }
 
     /**
-     * 添加请求头
+     * 添加单个请求头
      *
-     * @param key
-     * @param value
-     * @return
+     * @param key   请求头key
+     * @param value 请求头value
+     * @return HttpClient
      */
     public HttpClient header(String key, String value) {
         if (StringUtils.isNotBlank(key) && StringUtils.isNotBlank(value)) {
@@ -499,10 +536,10 @@ public class HttpClient {
     }
 
     /**
-     * 添加请求body
+     * 添加请求body字符串
      *
-     * @param body
-     * @return
+     * @param body body字符串
+     * @return HttpClient
      */
     public HttpClient body(String body) {
         if (StringUtils.isNotBlank(body)) {
@@ -512,23 +549,10 @@ public class HttpClient {
     }
 
     /**
-     * 添加bearer 认证方式token
-     *
-     * @param bearerToken
-     * @return
-     */
-    public HttpClient bearerToken(String bearerToken) {
-        if (StringUtils.isNotBlank(bearerToken)) {
-            this.bearerToken = bearerToken;
-        }
-        return this;
-    }
-
-    /**
      * 添加请求body
      *
-     * @param body
-     * @return
+     * @param body body对象
+     * @return HttpClient
      */
     public HttpClient body(Object body) {
         if (Objects.nonNull(body)) {
@@ -538,10 +562,23 @@ public class HttpClient {
     }
 
     /**
+     * 添加bearer 认证方式token
+     *
+     * @param bearerToken token值
+     * @return HttpClient
+     */
+    public HttpClient bearerToken(String bearerToken) {
+        if (StringUtils.isNotBlank(bearerToken)) {
+            this.bearerToken = bearerToken;
+        }
+        return this;
+    }
+
+    /**
      * 设置请求编码
      *
-     * @param contentType
-     * @return
+     * @param contentType 请求编码
+     * @return HttpClient
      */
     public HttpClient contentType(String contentType) {
         if (StringUtils.isNotBlank(contentType)) {
@@ -553,9 +590,9 @@ public class HttpClient {
     /**
      * 添加请求文件
      *
-     * @param name
-     * @param file
-     * @return
+     * @param name 文件名
+     * @param file 文件
+     * @return HttpClient
      */
     public HttpClient file(String name, File file) {
         if (StringUtils.isNotBlank(name) && Objects.nonNull(file)) {
@@ -567,8 +604,8 @@ public class HttpClient {
     /**
      * 添加多个文件
      *
-     * @param files
-     * @return
+     * @param files 文件
+     * @return HttpClient
      */
     public HttpClient files(Map<String, File> files) {
         if (Objects.nonNull(files)) {
@@ -580,11 +617,11 @@ public class HttpClient {
     }
 
     /**
-     * 添加multipart请求是textbody参数
+     * 添加单个multipart请求textBody参数
      *
-     * @param name
-     * @param value
-     * @return
+     * @param name  参数名
+     * @param value 参数值
+     * @return HttpClient
      */
     public HttpClient multipartTextBody(String name, String value) {
         if (StringUtils.isNotBlank(name) && StringUtils.isNotBlank(value)) {
@@ -594,10 +631,10 @@ public class HttpClient {
     }
 
     /**
-     * 添加multipart请求是textbody参数
+     * 添加多个multipart请求textBody参数
      *
-     * @param textBody
-     * @return
+     * @param textBody 参数
+     * @return HttpClient
      */
     public HttpClient multipartTextBody(Map<String, String> textBody) {
         if (Objects.nonNull(textBody) && textBody.size() > 0) {
@@ -609,10 +646,10 @@ public class HttpClient {
     /**
      * 设置代理
      *
-     * @param proxyHost
-     * @param proxyPort
-     * @param proxySchemeName
-     * @return
+     * @param proxyHost       代理host
+     * @param proxyPort       代理port
+     * @param proxySchemeName 代理模式，一般有http和https
+     * @return HttpClient
      */
     public HttpClient proxy(String proxyHost, Integer proxyPort, String proxySchemeName) {
         this.proxyHost = proxyHost;
@@ -622,10 +659,10 @@ public class HttpClient {
     }
 
     /**
-     * 当http请求错误(status<200 || status>=300)返回时处理逻辑
+     * 当http请求错误(status小于200或者status大于等于300)返回时处理逻辑
      *
      * @param errorResponseHandler 逻辑处理器
-     * @return this
+     * @return HttpClient
      */
     public HttpClient errorResponseHandler(ErrorResponseHandler errorResponseHandler) {
         this.errorResponseHandler = errorResponseHandler;
@@ -633,10 +670,10 @@ public class HttpClient {
     }
 
     /**
-     * 当http请求正确(200<=status<300)时返回时处理逻辑
+     * 当http请求正确(status大于等于200且status小于300)时返回时处理逻辑
      *
-     * @param successResponseHandler
-     * @return
+     * @param successResponseHandler 处理逻辑
+     * @return HttpClient
      */
     public HttpClient successResponseHandler(SuccessResponseHandler successResponseHandler) {
         this.successResponseHandler = successResponseHandler;
@@ -645,8 +682,9 @@ public class HttpClient {
 
     /**
      * 发送POST请求
+     * 需要注意的是，改方法必须在所有的配置设置后调用，否则该方法后设置的配置将不会生效
      *
-     * @return
+     * @return HttpClient
      */
     public HttpClient post() {
         this.validate();
@@ -663,8 +701,9 @@ public class HttpClient {
 
     /**
      * 发送GET请求
+     * 需要注意的是，改方法必须在所有的配置设置后调用，否则该方法后设置的配置将不会生效
      *
-     * @return
+     * @return HttpClient
      */
     public HttpClient get() {
         this.validate();
@@ -682,9 +721,9 @@ public class HttpClient {
     /**
      * 解析返回结果为指定类
      *
-     * @param clz
-     * @param <T>
-     * @return
+     * @param clz 需要解析的类型
+     * @param <T> 需要解析的类型
+     * @return 解析结果
      */
     public <T> T toObject(Class<T> clz) {
         if (StringUtils.isNotBlank(this.result)) {
@@ -697,7 +736,7 @@ public class HttpClient {
     /**
      * 解析返回结果为JSONObject
      *
-     * @return
+     * @return JSONObject
      */
     public JSONObject toJsonObject() {
         if (StringUtils.isNotBlank(this.result)) {
@@ -711,7 +750,7 @@ public class HttpClient {
     /**
      * 构建httpPost
      *
-     * @return
+     * @return HttpPost
      */
     private HttpPost buildHttpPost() throws URISyntaxException, UnsupportedEncodingException {
         HttpPost post = new HttpPost(buildUrl());
@@ -753,8 +792,8 @@ public class HttpClient {
     /**
      * 构建url
      *
-     * @return
-     * @throws URISyntaxException
+     * @return URI
+     * @throws URISyntaxException uri异常
      */
     private URI buildUrl() throws URISyntaxException {
         this.validate();
@@ -775,8 +814,8 @@ public class HttpClient {
     /**
      * 构建常用entitiy
      *
-     * @return
-     * @throws UnsupportedEncodingException
+     * @return HttpEntity
+     * @throws UnsupportedEncodingException 不支持的编码异常
      */
     private HttpEntity buildNormalEntity() throws UnsupportedEncodingException {
         StringEntity result = new StringEntity(body);
@@ -788,7 +827,7 @@ public class HttpClient {
     /**
      * 构建multipartEntity
      *
-     * @return
+     * @return HttpEntity
      */
     private HttpEntity buildMultipartEntity() {
         MultipartEntityBuilder builder = MultipartEntityBuilder.create();
@@ -867,7 +906,7 @@ public class HttpClient {
     /**
      * 构建参数
      *
-     * @return
+     * @return NameValuePair
      */
     private List<NameValuePair> buildParams() {
         List<NameValuePair> paramList = Lists.newArrayList();
@@ -880,7 +919,7 @@ public class HttpClient {
     /**
      * 构建数组类型的参数
      *
-     * @return
+     * @return NameValuePair
      */
     private List<NameValuePair> buildArrayParams() {
         List<NameValuePair> paramList = Lists.newArrayList();

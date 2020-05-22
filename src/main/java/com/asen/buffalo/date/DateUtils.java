@@ -7,9 +7,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * @description: 时间相关工具类
- * @author: Asen
- * @since: 2020/05/14
+ * 时间相关工具类
+ *
+ * @author Asen
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 public class DateUtils {
 
@@ -217,7 +219,7 @@ public class DateUtils {
      * 默认格式化{@code mills}，使用格式{@value HH_MM_SS}
      * default format {@code mills} using pattern {@value HH_MM_SS}
      *
-     * @param mills
+     * @param mills 时间戳
      * @return HH:mm:ss
      */
     public static String formatMillsTime(long mills) {
@@ -288,7 +290,7 @@ public class DateUtils {
      *
      * @param dayStart date
      * @param dayEnd   date
-     * @return
+     * @return Period
      */
     public static Period betweenDays(Date dayStart, Date dayEnd) {
         LocalDateTime localDateTimeStart = LocalDateTime.ofInstant(dayStart.toInstant(), OffsetDateTime.now().getOffset());
@@ -302,7 +304,7 @@ public class DateUtils {
      *
      * @param timeStart date
      * @param timeEnd   date
-     * @return
+     * @return Duration
      */
     public static Duration betweenTimes(Date timeStart, Date timeEnd) {
         LocalDateTime localDateTimeStart = LocalDateTime.ofInstant(timeStart.toInstant(), OffsetDateTime.now().getOffset());
@@ -316,7 +318,7 @@ public class DateUtils {
      *
      * @param dayStart date
      * @param dayEnd   date
-     * @return
+     * @return Period
      */
     public static Period betweenDays(String dayStart, String dayEnd) {
         return Period.between(parseToLocalDate(dayStart), parseToLocalDate(dayEnd));
@@ -328,7 +330,7 @@ public class DateUtils {
      *
      * @param timeStart date
      * @param timeEnd   date
-     * @return
+     * @return Duration
      */
     public static Duration betweenTimes(String timeStart, String timeEnd) {
         return Duration.between(parseToLocalDateTime(timeStart), parseToLocalDateTime(timeEnd));

@@ -1,9 +1,11 @@
 package com.asen.buffalo.http.handler;
 
 /**
- * @description: http请求错误返回(status < 200 | | status > = 300)处理器
- * @author: Asen
- * @since: 2020/05/19
+ * http请求错误返回(status小于200或者status大于等于300)处理器
+ *
+ * @author Asen
+ * @version 1.0.0
+ * @since 2020/05/19
  */
 public interface ErrorResponseHandler {
     /**
