@@ -184,7 +184,8 @@ public class DateUtils {
      * 根据pattern格式化{@code mills}
      * format {@code mills} using pattern
      *
-     * @param mills mills
+     * @param pattern pattern
+     * @param mills   mills
      * @return yyyy-MM-dd HH:mm:ss
      */
     public static String formatMills(long mills, String pattern) {
