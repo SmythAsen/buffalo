@@ -1,6 +1,7 @@
 package com.asen.buffalo.reflect;
 
 import java.lang.reflect.Field;
+import java.util.Locale;
 
 /**
  * 获取反射字段的GET、SET方法名
@@ -43,6 +44,29 @@ public class FieldUtils {
         stringBuilder.append(fieldName.substring(0, 1).toUpperCase())
                 .append(fieldName.substring(1));
         return fieldType.equals(boolean.class) ? stringBuilder.insert(0, IS_PREFIX).toString() : stringBuilder.insert(0, GET_PREFIX).toString();
+    }
 
+    public static String methodToProperty(String methodName) {
+        if (methodName.startsWith(IS_PREFIX)) {
+            methodName = methodName.substring(2);
+        } else if (methodName.startsWith(GET_PREFIX) || methodName.startsWith(SET_PREFIX)) {
+            methodName = methodName.substring(3);
+        }
+        if (methodName.length() == 1 || (methodName.length() > 1 && !Character.isUpperCase(methodName.charAt(1)))) {
+            methodName = methodName.substring(0, 1).toLowerCase(Locale.ENGLISH) + methodName.substring(1);
+        }
+        return methodName;
+    }
+
+    public static boolean isProperty(String name) {
+        return isGetter(name) || isSetter(name);
+    }
+
+    public static boolean isGetter(String name) {
+        return (name.startsWith(GET_PREFIX) && name.length() > 3) || (name.startsWith(IS_PREFIX) && name.length() > 2);
+    }
+
+    public static boolean isSetter(String name) {
+        return name.startsWith(SET_PREFIX) && name.length() > 3;
     }
 }
