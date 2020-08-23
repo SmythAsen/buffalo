@@ -8,8 +8,11 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * 相关工具类
+ *
  * @author Asen
- * @date 2020/08/19
+ * @version 1.0.3
+ * @since 2020/08/19
  */
 public class LambdaUtils {
 
@@ -18,6 +21,13 @@ public class LambdaUtils {
      */
     private static final Map<Class<?>, WeakReference<SerializedLambda>> FUNC_CACHE = new ConcurrentHashMap<>();
 
+    /**
+     * 获取字段名
+     *
+     * @param property 字段
+     * @param <T>      字段类型
+     * @return 字段名称
+     */
     public static <T> String getPropertyName(SFunction<T, ?> property) {
         SerializedLambda lambda = resolve(property);
         return FieldUtils.methodToProperty(lambda.getImplMethodName());
@@ -32,7 +42,7 @@ public class LambdaUtils {
      * @return 返回解析后的结果
      * @see SerializedLambda#resolve(SFunction)
      */
-    public static <T> SerializedLambda resolve(SFunction<T, ?> func) {
+    private static <T> SerializedLambda resolve(SFunction<T, ?> func) {
         Class<?> clazz = func.getClass();
         return Optional.ofNullable(FUNC_CACHE.get(clazz))
                 .map(WeakReference::get)
