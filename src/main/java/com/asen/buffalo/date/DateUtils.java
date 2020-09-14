@@ -338,6 +338,41 @@ public class DateUtils {
     }
 
     /**
+     * 获取两个时间之间的周末天数
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @return 周末天数
+     */
+    public static int getWeekDays(LocalDateTime start, LocalDateTime end) {
+        Duration between = Duration.between(start, end);
+        return getWeekDays(start, between.toDays());
+    }
+
+    /**
+     * 获取时间点新增天数中的周末天数
+     *
+     * @param start    开始时间
+     * @param plusDays 新增天数
+     * @return 周末天数
+     */
+    public static int getWeekDays(LocalDateTime start, long plusDays) {
+        if (plusDays <= 0) {
+            return 0;
+        }
+        int result = 0;
+        LocalDateTime endDay;
+        for (int day = 0; day <= plusDays; day++) {
+            endDay = start.plusDays(day);
+            if (DayOfWeek.SATURDAY.equals(endDay.getDayOfWeek())
+                    || DayOfWeek.SUNDAY.equals(endDay.getDayOfWeek())) {
+                result++;
+            }
+        }
+        return result;
+    }
+
+    /**
      * 获取本周开始时间
      * get start date of the {@code date} in week
      *
