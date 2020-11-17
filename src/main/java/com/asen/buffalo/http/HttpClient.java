@@ -209,6 +209,17 @@ public class HttpClient {
      */
     private String errorResult;
 
+
+    /**
+     * 请求原始返回数据
+     */
+    private CloseableHttpResponse response;
+
+    /**
+     * 原始请求数据
+     */
+    private HttpUriRequest request;
+
     /**
      * 错误返回处理
      */
@@ -681,6 +692,52 @@ public class HttpClient {
     }
 
     /**
+     * 获取请求原始返回数据
+     *
+     * @return CloseableHttpResponse
+     */
+    public CloseableHttpResponse getResponse() {
+        return response;
+    }
+
+    /**
+     * 获取原始请求数据
+     *
+     * @return HttpUriRequest
+     */
+    public HttpUriRequest getRequest() {
+        return request;
+    }
+
+    /**
+     * 获取原始GET请求数据
+     *
+     * @return HttpUriRequest
+     */
+    public HttpUriRequest getGetRequest() {
+        try {
+            return buildHttpGet();
+        } catch (URISyntaxException e) {
+            log.error(e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * 获取原始Post请求数据
+     *
+     * @return HttpUriRequest
+     */
+    public HttpUriRequest getPostRequest() {
+        try {
+            return buildHttpPost();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
      * 发送POST请求
      * 需要注意的是，改方法必须在所有的配置设置后调用，否则该方法后设置的配置将不会生效
      *
@@ -772,6 +829,7 @@ public class HttpClient {
             httpEntity = buildNormalEntity();
             post.setEntity(httpEntity);
         }
+        this.request = post;
         return post;
     }
 
@@ -786,6 +844,7 @@ public class HttpClient {
         if (StringUtils.isNotBlank(this.bearerToken)) {
             get.setHeader(AUTHORIZATION_NAME, BEARER_TOKEN_PREFIX + this.bearerToken);
         }
+        this.request = get;
         return get;
     }
 
@@ -855,6 +914,7 @@ public class HttpClient {
         CloseableHttpResponse response = null;
         try {
             response = httpclient.execute(request);
+            this.response = response;
             if (Objects.isNull(response)) {
                 throw new RuntimeException("call api exception no response");
             }
