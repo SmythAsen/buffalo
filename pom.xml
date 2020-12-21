@@ -44,7 +44,7 @@
         <commons-io.version>2.6</commons-io.version>
         <fastjson.version>1.2.70</fastjson.version>
         <slf4j.versionn>1.7.30</slf4j.versionn>
-        <xstream.version>1.4.12</xstream.version>
+        <xstream.version>1.4.15</xstream.version>
         <validation.version>2.0.1.Final</validation.version>
     </properties>
 
