@@ -11,8 +11,7 @@ import java.io.InputStream;
  * 依赖于{@link XStream}，所以需要了解相关文档
  *
  * @author Asen
- * @version 1.0.0
- * @since 2020/05/19
+ * @since 1.0.0
  */
 public class XmlUtils {
     public static <T> T toObject(InputStream xmlInputStream, Class<T> clazz) {

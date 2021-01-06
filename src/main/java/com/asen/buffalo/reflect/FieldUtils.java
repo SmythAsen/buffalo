@@ -7,8 +7,7 @@ import java.util.Locale;
  * 获取反射字段的GET、SET方法名
  *
  * @author Asen
- * @version 1.0.0
- * @since 2020/05/19
+ * @since 1.0.0
  **/
 public class FieldUtils {
     private static final String GET_PREFIX = "get";

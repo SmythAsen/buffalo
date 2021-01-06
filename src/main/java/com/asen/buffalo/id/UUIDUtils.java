@@ -6,8 +6,7 @@ import java.util.UUID;
  * UUID工具类
  *
  * @author Asen
- * @version 1.0.0
- * @since 2020/05/19
+ * @since 1.0.0
  */
 public class UUIDUtils {
 

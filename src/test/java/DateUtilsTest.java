@@ -5,11 +5,7 @@ import java.time.Duration;
 import java.time.Period;
 import java.util.Date;
 
-/**
- * @description:
- * @author: Asen
- * @since: 2020-05-15 15:00:18
- */
+
 public class DateUtilsTest {
 
     @Test

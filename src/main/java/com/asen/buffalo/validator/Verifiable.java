@@ -4,8 +4,7 @@ package com.asen.buffalo.validator;
  * 参数校验接口
  *
  * @author Asen
- * @version 1.0.0
- * @since 2020/05/19
+ * @since 1.0.0
  */
 public interface Verifiable {
     /**

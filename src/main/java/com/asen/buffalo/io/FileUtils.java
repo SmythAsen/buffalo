@@ -13,8 +13,7 @@ import java.util.List;
  * 文件工具类
  *
  * @author Asen
- * @version 1.0.0
- * @since 2020/05/19
+ * @since 1.0.0
  */
 @Slf4j
 public class FileUtils {

@@ -8,8 +8,7 @@ import java.io.*;
  * <p>负责将一个支持序列的 Function 序列化为 SerializedLambda</p>
  *
  * @author Asen
- * @version 1.0.3
- * @since 2020/08/23
+ * @since 1.0.3
  */
 @SuppressWarnings("unused")
 public class SerializedLambda implements Serializable {

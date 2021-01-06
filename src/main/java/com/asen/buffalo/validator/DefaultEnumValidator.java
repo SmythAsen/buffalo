@@ -11,8 +11,7 @@ import java.util.List;
  * 枚举类校验器
  *
  * @author Asen
- * @version 1.0.0
- * @since 2020/05/19
+ * @since 1.0.0
  */
 public class DefaultEnumValidator implements ConstraintValidator<EnumValidator, Object> {
 

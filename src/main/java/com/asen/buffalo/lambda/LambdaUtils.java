@@ -11,8 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 相关工具类
  *
  * @author Asen
- * @version 1.0.3
- * @since 2020/08/19
+ * @since 1.0.3
  */
 public class LambdaUtils {
 
