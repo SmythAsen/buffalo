@@ -89,6 +89,21 @@ public class OkHttpClients {
         return this;
     }
 
+    public OkHttpClients post(Request request) throws IOException {
+        this.request = request;
+        init();
+        Response response = getOkHttpClient().newCall(this.request).execute();
+        parseResponse(response);
+        return this;
+    }
+
+    public OkHttpClients post(RequestBody body) throws IOException {
+        init();
+        Response response = getOkHttpClient().newCall(request.newBuilder().post(body).build()).execute();
+        parseResponse(response);
+        return this;
+    }
+
     public OkHttpClients method(String method) throws IOException {
         init();
         Response response = getOkHttpClient().newCall(request.newBuilder().method(method, httpRequestBody).build()).execute();
@@ -102,7 +117,7 @@ public class OkHttpClients {
     }
 
     private void buildUrl() {
-        if (Objects.nonNull(this.httpUrl)) {
+        if (Objects.nonNull(this.httpUrl) || StringUtils.isBlank(this.url)) {
             return;
         }
         HttpUrl.Builder builder = Objects.requireNonNull(HttpUrl.parse(url)).newBuilder();
@@ -111,12 +126,17 @@ public class OkHttpClients {
     }
 
     private void buildRequest() {
+        Request.Builder builder;
         if (Objects.nonNull(this.request)) {
-            return;
+            builder = this.request.newBuilder();
+        } else {
+            builder = new Request.Builder();
         }
-        Request.Builder builder = new Request.Builder();
+        if (Objects.nonNull(httpUrl)) {
+            builder.url(httpUrl);
+        }
         headers.forEach(builder::addHeader);
-        request = builder.url(httpUrl).build();
+        request = builder.build();
     }
 
     private void buildRequestBody() {
@@ -223,6 +243,11 @@ public class OkHttpClients {
 
     public OkHttpClients requestBody(Object body) {
         this.requestBody = JSONObject.toJSONString(body, SerializerFeature.BrowserCompatible);
+        return this;
+    }
+
+    public OkHttpClients multipartBody(MultipartBody multipart) {
+        this.httpRequestBody = multipart;
         return this;
     }
 
