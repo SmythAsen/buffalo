@@ -14,6 +14,7 @@ import java.io.InputStream;
  * @since 1.0.0
  */
 public class XmlUtils {
+    @SuppressWarnings("unchecked")
     public static <T> T toObject(InputStream xmlInputStream, Class<T> clazz) {
         XStream xstream = new XStream();
         xstream.processAnnotations(clazz);
