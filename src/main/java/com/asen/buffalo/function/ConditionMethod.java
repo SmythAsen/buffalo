@@ -2,7 +2,7 @@ package com.asen.buffalo.function;
 
 /**
  * @author Asen
- * @date 2020/12/23
+ * @since 1.1.2
  */
 public interface ConditionMethod<R> {
     /**

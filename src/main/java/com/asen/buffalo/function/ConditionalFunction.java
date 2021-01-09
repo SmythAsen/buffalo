@@ -9,7 +9,7 @@ import java.util.Objects;
  * 一个可以替换大量if-else 和 switch的条件工具类
  *
  * @author Asen
- * @date 2018/4/29 16:36
+ * @since 1.1.2
  **/
 public class ConditionalFunction<K, R> {
 
