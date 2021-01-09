@@ -24,7 +24,7 @@ public class TestCase {
                         RequestBody.create(s.getBytes(), MediaType.parse("application/octet-stream")))
                 .build();
         Response response = OkHttpClients.create()
-                .url("http://127.0.0.1:8081/jars/upload")
+                .url("http://127.0.0.1:8081/jars/upload'%2bsss")
                 .addHeader("User-Agent", " Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
                 .multipartBody(formBody)
                 .post()
