@@ -7,10 +7,15 @@ import com.asen.buffalo.digest.HashUtils;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -74,14 +79,14 @@ public class OkHttpClients {
         return new OkHttpClients(callTimeout, connectionTimeout, readTimeOut);
     }
 
-    public OkHttpClients get() throws IOException {
+    public OkHttpClients get() throws Exception {
         init();
         Response response = getOkHttpClient().newCall(request.newBuilder().get().build()).execute();
         parseResponse(response);
         return this;
     }
 
-    public OkHttpClients post() throws IOException {
+    public OkHttpClients post() throws Exception {
         init();
         buildRequestBody();
         Response response = getOkHttpClient().newCall(request.newBuilder().post(httpRequestBody).build()).execute();
@@ -89,7 +94,7 @@ public class OkHttpClients {
         return this;
     }
 
-    public OkHttpClients post(Request request) throws IOException {
+    public OkHttpClients post(Request request) throws Exception {
         this.request = request;
         init();
         Response response = getOkHttpClient().newCall(this.request).execute();
@@ -97,14 +102,14 @@ public class OkHttpClients {
         return this;
     }
 
-    public OkHttpClients post(RequestBody body) throws IOException {
+    public OkHttpClients post(RequestBody body) throws Exception {
         init();
         Response response = getOkHttpClient().newCall(request.newBuilder().post(body).build()).execute();
         parseResponse(response);
         return this;
     }
 
-    public OkHttpClients method(String method) throws IOException {
+    public OkHttpClients method(String method) throws Exception {
         init();
         Response response = getOkHttpClient().newCall(request.newBuilder().method(method, httpRequestBody).build()).execute();
         parseResponse(response);
@@ -158,7 +163,7 @@ public class OkHttpClients {
         }
     }
 
-    public OkHttpClient getOkHttpClient() {
+    public OkHttpClient getOkHttpClient() throws Exception {
         if (Objects.nonNull(okHttpClient)) {
             return okHttpClient;
         }
@@ -170,17 +175,42 @@ public class OkHttpClients {
         if (Objects.nonNull(proxy)) {
             keyJoiner.add(proxy.toString());
         }
-        String param = callTimeout + "-" + connectionTimeout + "-" + readTimeOut;
-        String key = HashUtils.md5(param);
+        String key = HashUtils.md5(keyJoiner.toString());
         if (CACHE_CLIENTS.containsKey(key)) {
             return CACHE_CLIENTS.get(key);
         }
+        // Create a trust manager that does not validate certificate chains
+        final TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    @Override
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                    }
+
+                    @Override
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+                    }
+
+                    @Override
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return new java.security.cert.X509Certificate[]{};
+                    }
+                }
+        };
+
+        // Install the all-trusting trust manager
+        final SSLContext sslContext = SSLContext.getInstance("SSL");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        // Create an ssl socket factory with our all-trusting manager
+        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
                 .callTimeout(callTimeout.getTimeout(), callTimeout.getTimeUnit())
                 .connectTimeout(connectionTimeout.getTimeout(), connectionTimeout.getTimeUnit())
                 .readTimeout(readTimeOut.getTimeout(), readTimeOut.getTimeUnit())
                 .retryOnConnectionFailure(retryOnFail)
                 .proxy(proxy)
+                .hostnameVerifier((s, sslSession) -> true)
+                .sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0])
                 .build();
         CACHE_CLIENTS.put(key, okHttpClient);
         return okHttpClient;
