@@ -96,6 +96,7 @@ public class ConditionalFunction<K, R> {
 	 *
 	 * @param condition              需要验证的条件
 	 * @param defaultConditionMethod 当条件不存在时需要执行的方法
+	 * @return 发发执行返回值
 	 */
 	public R doIfWithDefault(K condition, ConditionMethod<R> defaultConditionMethod) {
 		if (this.functionPool.containsKey(condition)) {

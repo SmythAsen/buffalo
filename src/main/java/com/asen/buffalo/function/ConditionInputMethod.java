@@ -4,7 +4,7 @@ package com.asen.buffalo.function;
  * 条件方法，带输入的方法
  *
  * @author Asen
- * @date 2021/01/09
+ * @since 1.1.3
  */
 public interface ConditionInputMethod<I, R> extends ConditionMethod<R> {
     /**

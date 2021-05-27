@@ -3,7 +3,6 @@ import com.asen.buffalo.http.OkHttpClients;
 import okhttp3.Response;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,7 +11,7 @@ public class TestCase {
 
 
     @Test
-    public void test() throws IOException {
+    public void test() throws Exception {
         Response response = OkHttpClients.create()
                 .url("http://api-sentry.huya.com/")
                 .get()
@@ -21,7 +20,7 @@ public class TestCase {
     }
 
     @Test
-    public void test2() throws IOException {
+    public void test2() throws Exception {
         Map<String, Object> body = new HashMap<>();
         body.put("pageNum", 1);
         body.put("pageSize", 10);
