@@ -68,6 +68,12 @@ public class OkHttpClients {
     }
 
     public static OkHttpClients create() {
+        // 默认关闭长链接
+        return new OkHttpClients().addHeader("Connection", "close");
+    }
+
+    public static OkHttpClients createKeepAliveClient() {
+        // 默认关闭长链接
         return new OkHttpClients();
     }
 
