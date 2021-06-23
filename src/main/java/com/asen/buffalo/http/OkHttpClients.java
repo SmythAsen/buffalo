@@ -55,12 +55,16 @@ public class OkHttpClients {
     private boolean success;
 
     public OkHttpClients() {
+        // 默认关闭长链接
+        this.headers.put("Connection", "close");
     }
 
     public OkHttpClients(Timeout callTimeout, Timeout connectionTimeout, Timeout readTimeOut) {
         this.callTimeout = callTimeout;
         this.connectionTimeout = connectionTimeout;
         this.readTimeOut = readTimeOut;
+        // 默认关闭长链接
+        this.headers.put("Connection", "close");
     }
 
     public OkHttpClients(OkHttpClient okHttpClient) {
@@ -68,12 +72,6 @@ public class OkHttpClients {
     }
 
     public static OkHttpClients create() {
-        // 默认关闭长链接
-        return new OkHttpClients().addHeader("Connection", "close");
-    }
-
-    public static OkHttpClients createKeepAliveClient() {
-        // 默认关闭长链接
         return new OkHttpClients();
     }
 
