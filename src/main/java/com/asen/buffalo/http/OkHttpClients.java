@@ -164,6 +164,7 @@ public class OkHttpClients {
         this.success = response.isSuccessful();
         if (response.isSuccessful()) {
             this.body = new String(Objects.requireNonNull(response.body()).bytes(), StandardCharsets.UTF_8);
+            response.close();
         }
     }
 
